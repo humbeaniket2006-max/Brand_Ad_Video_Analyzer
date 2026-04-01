@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Brand Ad Video Analyzer — PineOS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #0d0d0d;
+    --paper: #f5f0e8;
+    --accent: #e8532a;
+    --accent2: #1a7a4a;
+    --muted: #8a8070;
+    --card: #faf7f2;
+    --border: #d4cfc5;
+    --tag-bg: #eae5dc;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Noise overlay ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.5;
+  }
+
+  /* ── Nav ── */
+  nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.2rem 4rem;
+    border-bottom: 1.5px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: rgba(245, 240, 232, 0.92);
+    backdrop-filter: blur(10px);
+    z-index: 100;
+  }
+
+  .nav-logo {
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 2.5rem;
+    list-style: none;
+  }
+
+  .nav-links a {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    text-decoration: none;
+    text-transform: uppercase;
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover { color: var(--ink); }
+
+  .nav-cta {
+    background: var(--ink);
+    color: var(--paper) !important;
+    padding: 0.5rem 1.2rem;
+    border-radius: 2px;
+  }
+
+  /* ── Hero ── */
+  .hero {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 88vh;
+    position: relative;
+  }
+
+  .hero-left {
+    padding: 6rem 4rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    border-right: 1.5px solid var(--border);
+    position: relative;
+  }
+
+  .hero-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+  }
+
+  .hero-eyebrow::before {
+    content: '';
+    display: inline-block;
+    width: 2.5rem;
+    height: 1.5px;
+    background: var(--accent);
+  }
+
+  h1 {
+    font-size: clamp(3.2rem, 5vw, 5.5rem);
+    font-weight: 800;
+    line-height: 1.0;
+    letter-spacing: -0.02em;
+    margin-bottom: 2rem;
+  }
+
+  h1 em {
+    font-style: normal;
+    color: var(--accent);
+  }
+
+  .hero-desc {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.9rem;
+    line-height: 1.8;
+    color: var(--muted);
+    max-width: 38ch;
+    margin-bottom: 3rem;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+    padding: 0.9rem 2rem;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border: none;
+    cursor: pointer;
+    border-radius: 2px;
+    text-decoration: none;
+    display: inline-block;
+    transition: background 0.2s, transform 0.15s;
+  }
+
+  .btn-primary:hover {
+    background: #c94420;
+    transform: translateY(-1px);
+  }
+
+  .btn-ghost {
+    color: var(--ink);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: gap 0.2s;
+  }
+
+  .btn-ghost:hover { gap: 0.8rem; }
+
+  .hero-right {
+    padding: 4rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* ── Pipeline Visual ── */
+  .pipeline {
+    position: relative;
+    padding: 2rem 0;
+  }
+
+  .pipeline-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    opacity: 0;
+    transform: translateX(20px);
+    animation: fadeSlide 0.5s forwards;
+  }
+
+  .pipeline-step:nth-child(1) { animation-delay: 0.1s; }
+  .pipeline-step:nth-child(2) { animation-delay: 0.25s; }
+  .pipeline-step:nth-child(3) { animation-delay: 0.4s; }
+  .pipeline-step:nth-child(4) { animation-delay: 0.55s; }
+  .pipeline-step:nth-child(5) { animation-delay: 0.7s; }
+
+  @keyframes fadeSlide {
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .step-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    width: 1.8rem;
+    flex-shrink: 0;
+    padding-top: 0.1rem;
+  }
+
+  .step-icon {
+    width: 2.8rem;
+    height: 2.8rem;
+    border: 1.5px solid var(--border);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+    background: var(--card);
+  }
+
+  .step-body { flex: 1; }
+
+  .step-title {
+    font-weight: 700;
+    font-size: 0.9rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .step-desc {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .step-connector {
+    width: 1.5px;
+    height: 1.2rem;
+    background: var(--border);
+    margin-left: calc(1.8rem + 1.5rem + 1.4rem);
+    margin-top: -1.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  /* ── Upload Zone ── */
+  #app {
+    padding: 5rem 4rem;
+    border-top: 1.5px solid var(--border);
+    scroll-margin-top: 5rem;
+  }
+
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+
+  .section-title {
+    font-size: 2.4rem;
+    font-weight: 800;
+    margin-bottom: 3rem;
+    letter-spacing: -0.02em;
+  }
+
+  .app-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    align-items: start;
+  }
+
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 6px;
+    padding: 3rem 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    background: var(--card);
+    position: relative;
+  }
+
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(232, 83, 42, 0.04);
+  }
+
+  .upload-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  .upload-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    display: block;
+  }
+
+  .upload-zone h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+  }
+
+  .upload-zone p {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+
+  /* ── Config Panel ── */
+  .config-panel {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    padding: 2rem;
+  }
+
+  .config-panel h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .form-group {
+    margin-bottom: 1.4rem;
+  }
+
+  label {
+    display: block;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.4rem;
+  }
+
+  input[type="text"],
+  input[type="number"],
+  input[type="password"],
+  select {
+    width: 100%;
+    padding: 0.7rem 0.9rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    background: var(--paper);
+    border: 1.5px solid var(--border);
+    border-radius: 3px;
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input:focus, select:focus { border-color: var(--accent); }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .run-btn {
+    width: 100%;
+    padding: 1rem;
+    background: var(--ink);
+    color: var(--paper);
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    margin-top: 0.5rem;
+    transition: background 0.2s, transform 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+  }
+
+  .run-btn:hover { background: var(--accent); transform: translateY(-1px); }
+  .run-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* ── Progress ── */
+  .progress-bar-wrap {
+    height: 3px;
+    background: var(--border);
+    border-radius: 99px;
+    margin-top: 1rem;
+    overflow: hidden;
+    display: none;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--accent);
+    border-radius: 99px;
+    transition: width 0.4s ease;
+  }
+
+  .status-line {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-top: 0.5rem;
+    min-height: 1.2em;
+    display: none;
+  }
+
+  /* ── Results ── */
+  #results {
+    padding: 0 4rem 5rem;
+    display: none;
+  }
+
+  .report-header {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5px;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+  }
+
+  .stat-card {
+    background: var(--card);
+    padding: 1.8rem 1.5rem;
+    border-right: 1.5px solid var(--border);
+  }
+
+  .stat-card:last-child { border-right: none; }
+
+  .stat-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.5rem;
+  }
+
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+
+  .stat-value.accent { color: var(--accent); }
+  .stat-value.green { color: var(--accent2); }
+
+  /* ── Frames Grid ── */
+  .frames-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 1.2rem;
+  }
+
+  .frames-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5px;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 2.5rem;
+  }
+
+  .frame-card {
+    background: var(--card);
+    overflow: hidden;
+  }
+
+  .frame-img-wrap {
+    aspect-ratio: 16/9;
+    background: var(--tag-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .frame-img-wrap canvas {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .frame-ts {
+    position: absolute;
+    bottom: 0.4rem;
+    left: 0.5rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    background: rgba(13, 13, 13, 0.7);
+    color: white;
+    padding: 0.1rem 0.4rem;
+    border-radius: 2px;
+  }
+
+  .frame-score {
+    position: absolute;
+    top: 0.4rem;
+    right: 0.5rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    font-weight: bold;
+    padding: 0.15rem 0.4rem;
+    border-radius: 2px;
+  }
+
+  .score-high { background: var(--accent2); color: white; }
+  .score-mid  { background: #d4a017; color: white; }
+  .score-low  { background: var(--accent); color: white; }
+
+  .frame-meta {
+    padding: 0.9rem 1rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .frame-tone {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: var(--tag-bg);
+    padding: 0.15rem 0.5rem;
+    border-radius: 2px;
+    margin-bottom: 0.4rem;
+    color: var(--muted);
+  }
+
+  .frame-desc {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--ink);
+    line-height: 1.5;
+    margin-bottom: 0.3rem;
+  }
+
+  .frame-products {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+  }
+
+  /* ── Summary Panel ── */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: 3fr 2fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .summary-box {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    padding: 1.8rem;
+  }
+
+  .summary-box h4 {
+    font-size: 0.85rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid var(--border);
+    letter-spacing: 0.03em;
+  }
+
+  .summary-box p {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    line-height: 1.8;
+    color: var(--ink);
+  }
+
+  .tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+  }
+
+  .tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.67rem;
+    background: var(--tag-bg);
+    padding: 0.2rem 0.6rem;
+    border-radius: 2px;
+    color: var(--ink);
+    letter-spacing: 0.05em;
+  }
+
+  .tag.accent { background: rgba(232, 83, 42, 0.1); color: var(--accent); }
+
+  .reco-item {
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-start;
+    margin-bottom: 0.6rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    line-height: 1.6;
+    color: var(--ink);
+  }
+
+  .reco-item::before {
+    content: '→';
+    color: var(--accent);
+    flex-shrink: 0;
+    margin-top: 0.05rem;
+  }
+
+  /* ── Colors ── */
+  .color-swatches {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+  }
+
+  .swatch {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.55rem;
+    font-family: 'DM Mono', monospace;
+    overflow: hidden;
+    position: relative;
+    cursor: default;
+  }
+
+  /* ── Download ── */
+  .download-bar {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 1rem;
+  }
+
+  .btn-download {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.6rem 1.2rem;
+    border: 1.5px solid var(--border);
+    border-radius: 2px;
+    background: var(--card);
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--ink);
+  }
+
+  .btn-download:hover {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
+
+  /* ── Footer ── */
+  footer {
+    border-top: 1.5px solid var(--border);
+    padding: 2rem 4rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  footer p {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+  }
+
+  footer a { color: var(--accent); text-decoration: none; }
+
+  /* ── Video file info bar ── */
+  .file-info-bar {
+    display: none;
+    align-items: center;
+    gap: 1rem;
+    background: rgba(26, 122, 74, 0.08);
+    border: 1px solid rgba(26, 122, 74, 0.25);
+    border-radius: 3px;
+    padding: 0.6rem 1rem;
+    margin-top: 1rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--accent2);
+  }
+
+  /* ── Colab CTA ── */
+  .colab-cta {
+    background: var(--ink);
+    color: var(--paper);
+    border-radius: 6px;
+    padding: 3rem 4rem;
+    margin: 0 4rem 4rem;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2rem;
+    align-items: center;
+  }
+
+  .colab-cta h3 {
+    font-size: 1.6rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+  }
+
+  .colab-cta p {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    color: rgba(245,240,232,0.6);
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 900px) {
+    nav { padding: 1rem 1.5rem; }
+    .nav-links { display: none; }
+    .hero { grid-template-columns: 1fr; }
+    .hero-right { display: none; }
+    .hero-left { padding: 3rem 1.5rem; }
+    #app { padding: 3rem 1.5rem; }
+    .app-grid { grid-template-columns: 1fr; }
+    #results { padding: 0 1.5rem 3rem; }
+    .report-header { grid-template-columns: 1fr 1fr; }
+    .stat-card:nth-child(2) { border-right: none; }
+    .stat-card:nth-child(3) { border-right: 1.5px solid var(--border); }
+    .summary-grid { grid-template-columns: 1fr; }
+    .colab-cta { margin: 0 1.5rem 3rem; padding: 2rem; grid-template-columns: 1fr; }
+    footer { padding: 1.5rem; flex-direction: column; gap: 0.5rem; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── NAV ── -->
+<nav>
+  <div class="nav-logo">PineOS</div>
+  <ul class="nav-links">
+    <li><a href="#app">Analyzer</a></li>
+    <li><a href="#how">How It Works</a></li>
+    <li><a href="https://github.com/humbeaniket2006-max/Brand_Ad_Video_Analyzer" target="_blank">GitHub</a></li>
+    <li><a href="#app" class="nav-cta">Try It</a></li>
+  </ul>
+</nav>
+
+<!-- ── HERO ── -->
+<section class="hero">
+  <div class="hero-left">
+    <div class="hero-eyebrow">Brand Intelligence · Gemini Vision</div>
+    <h1>Analyze <em>any</em> brand ad in seconds</h1>
+    <p class="hero-desc">
+      Upload a brand advertisement video. Our pipeline extracts frames, sends each to Gemini 2.0 Vision, and outputs a structured intelligence report — tone, products, messaging, and consistency scores.
+    </p>
+    <div class="hero-actions">
+      <a href="#app" class="btn-primary">Start Analyzing →</a>
+      <a href="https://github.com/humbeaniket2006-max/Brand_Ad_Video_Analyzer" class="btn-ghost" target="_blank">View on GitHub ↗</a>
+    </div>
+  </div>
+
+  <div class="hero-right" id="how">
+    <div class="section-label">Pipeline</div>
+    <div class="pipeline">
+
+      <div class="pipeline-step">
+        <span class="step-num">01</span>
+        <div class="step-icon">📹</div>
+        <div class="step-body">
+          <div class="step-title">Video Upload</div>
+          <div class="step-desc">Upload any MP4 brand ad. OpenCV extracts keyframes every N seconds.</div>
+        </div>
+      </div>
+      <div class="step-connector"></div>
+
+      <div class="pipeline-step">
+        <span class="step-num">02</span>
+        <div class="step-icon">🖼️</div>
+        <div class="step-body">
+          <div class="step-title">Frame Extraction</div>
+          <div class="step-desc">Each frame is base64-encoded and queued for analysis.</div>
+        </div>
+      </div>
+      <div class="step-connector"></div>
+
+      <div class="pipeline-step">
+        <span class="step-num">03</span>
+        <div class="step-icon">🤖</div>
+        <div class="step-body">
+          <div class="step-title">Gemini Vision</div>
+          <div class="step-desc">gemini-2.0-flash-lite analyzes each frame: tone, products, text, score.</div>
+        </div>
+      </div>
+      <div class="step-connector"></div>
+
+      <div class="pipeline-step">
+        <span class="step-num">04</span>
+        <div class="step-icon">🔀</div>
+        <div class="step-body">
+          <div class="step-title">Synthesis</div>
+          <div class="step-desc">All frame results merged into a final brand intelligence summary.</div>
+        </div>
+      </div>
+      <div class="step-connector"></div>
+
+      <div class="pipeline-step">
+        <span class="step-num">05</span>
+        <div class="step-icon">📊</div>
+        <div class="step-body">
+          <div class="step-title">Report Output</div>
+          <div class="step-desc">Structured JSON + visual dashboard. Download or pipe into your stack.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── APP ── -->
+<section id="app">
+  <div class="section-label">Analyzer</div>
+  <div class="section-title">Run your analysis</div>
+
+  <div class="app-grid">
+
+    <!-- Upload -->
+    <div>
+      <div class="upload-zone" id="dropZone">
+        <input type="file" id="videoFile" accept="video/mp4,video/*" />
+        <span class="upload-icon">🎬</span>
+        <h3>Drop your brand ad video here</h3>
+        <p>MP4 format · Max 200MB recommended</p>
+      </div>
+
+      <div class="file-info-bar" id="fileInfoBar">
+        <span>✅</span>
+        <span id="fileInfoText">No file selected</span>
+      </div>
+    </div>
+
+    <!-- Config -->
+    <div class="config-panel">
+      <h3>⚙️ Analysis Settings</h3>
+
+      <div class="form-group">
+        <label>Gemini API Key</label>
+        <input type="password" id="apiKey" placeholder="AIzaSy..." autocomplete="off" />
+      </div>
+
+      <div class="form-group">
+        <label>Brand Name</label>
+        <input type="text" id="brandName" placeholder="e.g. Mamaearth, Nike, Apple" value="Mamaearth" />
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Frame Interval (s)</label>
+          <input type="number" id="frameInterval" value="2" min="1" max="10" />
+        </div>
+        <div class="form-group">
+          <label>Max Frames</label>
+          <input type="number" id="maxFrames" value="8" min="1" max="20" />
+        </div>
+      </div>
+
+      <button class="run-btn" id="runBtn" onclick="runAnalysis()">
+        <span>▶</span> Analyze Video
+      </button>
+
+      <div class="progress-bar-wrap" id="progressWrap">
+        <div class="progress-bar-fill" id="progressFill"></div>
+      </div>
+      <div class="status-line" id="statusLine">Initializing…</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── RESULTS ── -->
+<section id="results">
+  <div class="report-header" id="reportHeader"></div>
+  <div class="frames-title">📷 Frame-by-Frame Analysis</div>
+  <div class="frames-grid" id="framesGrid"></div>
+  <div class="summary-grid" id="summaryGrid"></div>
+  <div class="download-bar">
+    <button class="btn-download" id="dlBtn" onclick="downloadReport()">⬇ Download JSON Report</button>
+  </div>
+</section>
+
+<!-- ── COLAB CTA ── -->
+<div class="colab-cta">
+  <div>
+    <h3>Run the full pipeline in Google Colab</h3>
+    <p>For large videos, batch analysis, or production pipelines — open the notebook directly.</p>
+  </div>
+  <a href="https://colab.research.google.com/drive/1p_T9xLQDeDOVLejwOxTuCwt2fsjF2_mz" target="_blank" class="btn-primary" style="white-space:nowrap;">Open in Colab →</a>
+</div>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <p>Built by <a href="https://github.com/humbeaniket2006-max/Brand_Ad_Video_Analyzer" target="_blank">Aniket Humbe</a> · IIT Madras · Scaler AI Labs</p>
+  <p>Stack: Python · OpenCV · Gemini 2.0 Flash Lite · PineOS</p>
+</footer>
+
+<script>
+  // ── Drag & drop ──
+  const dropZone = document.getElementById('dropZone');
+  const fileInput = document.getElementById('videoFile');
+  const fileInfoBar = document.getElementById('fileInfoBar');
+  const fileInfoText = document.getElementById('fileInfoText');
+
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) { fileInput.files = e.dataTransfer.files; showFileInfo(file); }
+  });
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) showFileInfo(fileInput.files[0]);
+  });
+
+  function showFileInfo(file) {
+    const mb = (file.size / 1024 / 1024).toFixed(1);
+    fileInfoText.textContent = `${file.name} · ${mb} MB`;
+    fileInfoBar.style.display = 'flex';
+  }
+
+  // ── State ──
+  let reportData = null;
+  let videoEl = null;
+  let extractedFrames = [];
+
+  // ── Status helpers ──
+  function setStatus(msg, progress) {
+    document.getElementById('statusLine').style.display = 'block';
+    document.getElementById('progressWrap').style.display = 'block';
+    document.getElementById('statusLine').textContent = msg;
+    document.getElementById('progressFill').style.width = progress + '%';
+  }
+
+  // ── Frame extraction via canvas ──
+  function extractFramesFromVideo(file, intervalSec, maxFrames) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const video = document.createElement('video');
+      video.src = url;
+      video.crossOrigin = 'anonymous';
+      video.muted = true;
+
+      video.addEventListener('loadedmetadata', () => {
+        const duration = video.duration;
+        const timestamps = [];
+        for (let t = 0; t < duration; t += intervalSec) {
+          timestamps.push(parseFloat(t.toFixed(1)));
+          if (timestamps.length >= maxFrames) break;
+        }
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const frames = [];
+        let idx = 0;
+
+        function captureNext() {
+          if (idx >= timestamps.length) {
+            URL.revokeObjectURL(url);
+            resolve(frames);
+            return;
+          }
+          const ts = timestamps[idx];
+          video.currentTime = ts;
+        }
+
+        video.addEventListener('seeked', () => {
+          canvas.width = video.videoWidth || 640;
+          canvas.height = video.videoHeight || 360;
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          const b64 = dataUrl.split(',')[1];
+          frames.push({ index: idx, timestamp: timestamps[idx], b64, dataUrl });
+          idx++;
+          captureNext();
+        });
+
+        captureNext();
+      });
+
+      video.addEventListener('error', reject);
+    });
+  }
+
+  // ── Gemini Vision call ──
+  async function analyzeFrame(b64, timestamp, brandName, apiKey) {
+    const prompt = `You are a brand intelligence analyst analyzing a frame from a brand advertisement video.
+
+Analyze this frame and return ONLY valid JSON — no markdown, no commentary:
+{
+  "timestamp_s": ${timestamp},
+  "products_visible": ["list of products or product categories visible"],
+  "text_on_screen": "any text/tagline visible in the frame",
+  "dominant_colors": ["2-3 main colors"],
+  "tone": "one word: playful/premium/clinical/energetic/emotional/aspirational",
+  "scene_description": "one sentence describing what's happening",
+  "on_brand_score": 0,
+  "notes": "any key observation about brand messaging"
+}
+
+on_brand_score: rate 1-10. Brand context: ${brandName}`;
+
+    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=' + apiKey, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            { inline_data: { mime_type: 'image/jpeg', data: b64 } },
+            { text: prompt }
+          ]
+        }]
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err?.error?.message || res.statusText);
+    }
+
+    const data = await res.json();
+    let raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+    raw = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    return JSON.parse(raw);
+  }
+
+  async function generateSummary(frameResults, brandName, duration, apiKey) {
+    const prompt = `You are a brand intelligence analyst. I've analyzed ${frameResults.length} frames from a ${brandName} ad video.
+Here are the per-frame results:
+
+${JSON.stringify(frameResults, null, 2).slice(0, 5000)}
+
+Synthesize into a final brand video intelligence report. Return ONLY valid JSON:
+{
+  "brand": "${brandName}",
+  "video_duration_analyzed": "${duration}s",
+  "frames_analyzed": ${frameResults.length},
+  "overall_tone": ["2-3 adjectives"],
+  "products_featured": ["deduplicated list"],
+  "key_messages": ["main messages/taglines spotted"],
+  "dominant_colors": ["brand color palette from video"],
+  "avg_on_brand_score": 0.0,
+  "consistency_score": 0,
+  "brand_persona_summary": "2-3 sentence summary",
+  "recommendations": ["1-2 suggestions"]
+}
+consistency_score: 1-10 how consistent brand identity is.`;
+
+    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=' + apiKey, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+    });
+
+    const data = await res.json();
+    let raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+    raw = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    return JSON.parse(raw);
+  }
+
+  // ── Main run ──
+  async function runAnalysis() {
+    const file = fileInput.files[0];
+    const apiKey = document.getElementById('apiKey').value.trim();
+    const brandName = document.getElementById('brandName').value.trim() || 'Brand';
+    const intervalSec = parseInt(document.getElementById('frameInterval').value) || 2;
+    const maxFrames = parseInt(document.getElementById('maxFrames').value) || 8;
+
+    if (!file) { alert('Please upload a video file first.'); return; }
+    if (!apiKey) { alert('Please enter your Gemini API key.'); return; }
+
+    const runBtn = document.getElementById('runBtn');
+    runBtn.disabled = true;
+    document.getElementById('results').style.display = 'none';
+    setStatus('Extracting frames from video…', 5);
+
+    try {
+      // Step 1: Extract frames
+      extractedFrames = await extractFramesFromVideo(file, intervalSec, maxFrames);
+      setStatus(`Extracted ${extractedFrames.length} frames. Sending to Gemini…`, 15);
+
+      // Step 2: Analyze each frame
+      const frameResults = [];
+      const delay = ms => new Promise(r => setTimeout(r, ms));
+
+      for (let i = 0; i < extractedFrames.length; i++) {
+        const f = extractedFrames[i];
+        const pct = 15 + Math.round(((i + 1) / extractedFrames.length) * 65);
+        setStatus(`Analyzing frame ${i + 1} / ${extractedFrames.length} @ ${f.timestamp}s…`, pct);
+
+        try {
+          const result = await analyzeFrame(f.b64, f.timestamp, brandName, apiKey);
+          frameResults.push(result);
+        } catch (e) {
+          console.warn('Frame skip:', e.message);
+        }
+
+        if (i < extractedFrames.length - 1) await delay(4500);
+      }
+
+      if (!frameResults.length) throw new Error('No frames analyzed successfully.');
+
+      setStatus('Generating brand intelligence summary…', 85);
+      await delay(1000);
+
+      // Step 3: Summary
+      const lastTs = extractedFrames[extractedFrames.length - 1]?.timestamp || 0;
+      const summary = await generateSummary(frameResults, brandName, lastTs, apiKey);
+      summary.frame_analysis = frameResults;
+      summary.model_used = 'gemini-2.0-flash-lite';
+
+      reportData = summary;
+      setStatus('✅ Analysis complete!', 100);
+      renderResults(summary);
+
+    } catch (err) {
+      setStatus('❌ Error: ' + err.message, 0);
+      alert('Analysis failed: ' + err.message);
+    }
+
+    runBtn.disabled = false;
+  }
+
+  // ── Render results ──
+  function renderResults(report) {
+    const resultsEl = document.getElementById('results');
+    resultsEl.style.display = 'block';
+    resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    // Stats header
+    document.getElementById('reportHeader').innerHTML = `
+      <div class="stat-card">
+        <div class="stat-label">Brand</div>
+        <div class="stat-value" style="font-size:1.4rem">${report.brand || '—'}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Frames Analyzed</div>
+        <div class="stat-value accent">${report.frames_analyzed || report.frame_analysis?.length || '—'}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg On-Brand Score</div>
+        <div class="stat-value green">${report.avg_on_brand_score ?? '—'}<span style="font-size:1rem;color:var(--muted)">/10</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Consistency Score</div>
+        <div class="stat-value">${report.consistency_score ?? '—'}<span style="font-size:1rem;color:var(--muted)">/10</span></div>
+      </div>
+    `;
+
+    // Frames grid
+    const framesGrid = document.getElementById('framesGrid');
+    framesGrid.innerHTML = '';
+
+    (report.frame_analysis || []).forEach((fa, i) => {
+      const frame = extractedFrames[i];
+      const score = fa.on_brand_score || 0;
+      const scoreClass = score >= 8 ? 'score-high' : score >= 5 ? 'score-mid' : 'score-low';
+
+      const card = document.createElement('div');
+      card.className = 'frame-card';
+
+      const imgWrap = document.createElement('div');
+      imgWrap.className = 'frame-img-wrap';
+
+      if (frame?.dataUrl) {
+        const img = document.createElement('img');
+        img.src = frame.dataUrl;
+        img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+        imgWrap.appendChild(img);
+      } else {
+        imgWrap.innerHTML = `<span style="font-size:2rem;color:var(--muted)">🎞️</span>`;
+      }
+
+      imgWrap.innerHTML += `
+        <span class="frame-ts">${fa.timestamp_s ?? (frame?.timestamp ?? '?')}s</span>
+        <span class="frame-score ${scoreClass}">${score}/10</span>
+      `;
+
+      const products = (fa.products_visible || []).join(', ') || 'None detected';
+      const textOnScreen = fa.text_on_screen && fa.text_on_screen !== 'N/A' ? `"${fa.text_on_screen}"` : '';
+
+      card.innerHTML = ``;
+      card.appendChild(imgWrap);
+      card.innerHTML += `
+        <div class="frame-meta">
+          <span class="frame-tone">${fa.tone || 'unknown'}</span>
+          <div class="frame-desc">${fa.scene_description || '—'}</div>
+          ${textOnScreen ? `<div class="frame-desc" style="color:var(--accent);font-style:italic">${textOnScreen}</div>` : ''}
+          <div class="frame-products">Products: ${products}</div>
+        </div>
+      `;
+      framesGrid.appendChild(card);
+    });
+
+    // Summary panels
+    const tones = (report.overall_tone || []).map(t => `<span class="tag accent">${t}</span>`).join('');
+    const products = (report.products_featured || []).map(p => `<span class="tag">${p}</span>`).join('');
+    const messages = (report.key_messages || []).map(m => `<span class="tag">${m}</span>`).join('');
+    const recos = (report.recommendations || []).map(r => `<div class="reco-item">${r}</div>`).join('');
+
+    const colorNames = report.dominant_colors || [];
+    const colorMap = {
+      'green': '#2e7d32', 'white': '#f5f5f5', 'golden': '#d4a017', 'gold': '#d4a017',
+      'black': '#1a1a1a', 'blue': '#1565c0', 'red': '#c62828', 'orange': '#e65100',
+      'pink': '#e91e63', 'purple': '#6a1b9a', 'brown': '#4e342e', 'grey': '#757575',
+      'gray': '#757575', 'yellow': '#f9a825', 'cream': '#fff8e1', 'beige': '#f5f0e8'
+    };
+    const swatches = colorNames.map(c => {
+      const bg = colorMap[c.toLowerCase()] || '#' + Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0');
+      return `<div class="swatch" style="background:${bg}" title="${c}"></div>`;
+    }).join('');
+
+    document.getElementById('summaryGrid').innerHTML = `
+      <div class="summary-box">
+        <h4>📝 Brand Persona Summary</h4>
+        <p>${report.brand_persona_summary || '—'}</p>
+        <br/>
+        <h4 style="margin-top:1rem">🎨 Overall Tone</h4>
+        <div class="tag-list">${tones || '<span class="tag">—</span>'}</div>
+        <h4 style="margin-top:1rem">📦 Products Featured</h4>
+        <div class="tag-list">${products || '<span class="tag">—</span>'}</div>
+        <h4 style="margin-top:1rem">💬 Key Messages</h4>
+        <div class="tag-list">${messages || '<span class="tag">—</span>'}</div>
+      </div>
+      <div>
+        <div class="summary-box" style="margin-bottom:1.5rem">
+          <h4>🎨 Dominant Colors</h4>
+          <div class="color-swatches">${swatches || '—'}</div>
+          <div class="tag-list" style="margin-top:0.8rem">
+            ${colorNames.map(c => `<span class="tag">${c}</span>`).join('')}
+          </div>
+        </div>
+        <div class="summary-box">
+          <h4>💡 Recommendations</h4>
+          ${recos || '<div class="reco-item">No recommendations generated.</div>'}
+        </div>
+      </div>
+    `;
+  }
+
+  function downloadReport() {
+    if (!reportData) return;
+    const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(reportData.brand || 'brand').toLowerCase().replace(/\s+/g, '_')}_video_intelligence.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+</script>
+</body>
+</html>
